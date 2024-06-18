@@ -16,7 +16,7 @@ QueueHandle_t TimeQueue;
 TaskHandle_t MonitorT;
 TaskHandle_t RecordT;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  
-std::vector<data> Record{};
+std::vector<data> Record{} ;
 QueueHandle_t DataQueues[3];
 bool IsRecording = false;
 
@@ -49,7 +49,7 @@ void ConnectWiFi_AP()
 
 WebServer server(80);
 
-void FormReplace(String& Form,data Data, String selectedX,String selectedY, String ChartSvg){
+std::map<String, int> GetRepMap(data Data){
   std::map<String, int> RepMap;    
   RepMap["DT"]=Data.Time;
   RepMap["RPS"]=Data.RadPS;
@@ -57,18 +57,52 @@ void FormReplace(String& Form,data Data, String selectedX,String selectedY, Stri
   RepMap["ANGACC"]=Data.AngAcc;
   RepMap["MOMENT"]=Data.Moment;
   RepMap["POWER"]=Data.Power;
+  return RepMap;
+}
+
+void FormReplace(String& Form,data Data, String selectedX,String selectedY, String ChartSvg){
+  std::map<String, int> RepMap = GetRepMap(Data);    
   for(auto rep : RepMap){
     Form.replace(String("[")+rep.first+String("]"),String(rep.second));
     Form.replace(String("<!--X")+rep.first+String("-->"),selectedX==rep.first?"selected = \"selected\"":"");
     Form.replace(String("<!--Y")+rep.first+String("-->"),selectedY==rep.first?"selected = \"selected\"":"");
+    Form.replace("[SVGREP]", ChartSvg);
   }
+}
+
+int ChartRemapCoords(int Coord,String Selected,int Size){
+  int max = 0;
+  //int min = INFINITY;
+  for(data Data : Record){
+    std::map<String, int> RepMap = GetRepMap(Data);    
+    if(RepMap[Selected] > max) max = RepMap[Selected];
+    //else if(RepMap[Selected] < min) min = RepMap[Selected];
+  }
+  return map(Coord,0,max,0,Size);
+}
+
+
+void AddToChart(String& Chart,int x, int y){
+  Chart.replace("\"/><!--P-->",String('L')+ x + String(' ') + y + String("\"/><!--P-->"));
+  Chart.replace("<!--C-->", String("<circle cx=\"")+x+String("\" cy=\"")+y+String("\" r=\"2\" fill=\"blue\"/>\n<!--C-->"));
+}
+
+String BuildChart(String selectedX,String selectedY){
+  String Chart = SvgTemplate;
+  //std::vector<data> SortedRecord = Record;
+  for(data Data : Record){
+    std::map<String, int> RepMap = GetRepMap(Data);    
+    AddToChart(Chart,ChartRemapCoords(RepMap[selectedX],selectedX,400),200-ChartRemapCoords(RepMap[selectedY],selectedY,200));
+  }
+  return Chart;
 }
 
 
 void handleRoot() {
    String response = MAIN_page;
    data CurData;
-   FormReplace(response,CurData,"MOMENT","ANGACC","");
+   String Chart = BuildChart("DT","RPM");
+   FormReplace(response,CurData,"MOMENT","ANGACC", Chart);
    server.send(200, "text/html", response);
 }
 
@@ -148,7 +182,8 @@ void RecordTask(void* params){
   while(true){
     if(xQueueReceive((QueueHandle_t)params,&CurData,portMAX_DELAY)!=pdTRUE)continue;
 
-    if(!IsRecording){Record.clear();continue;}
+    //Record.clear();
+    if(!IsRecording){continue;}
 
     if(Record.size() <= 4000)Record.push_back(CurData);
     else {
@@ -165,6 +200,13 @@ void setup() {
   lcd.backlight();
   ConnectWiFi_AP();
   InitServer();
+
+  for(int i = 0; i < 10; i++){
+    data D;
+    D.Time = map(i,0,10,0,200);
+    D.RotPM = D.Time*D.Time;
+    Record.push_back(D);
+  }
 
   attachInterrupt(digitalPinToInterrupt(HALL_GPIO), HallISR, RISING);
   TimeQueue = xQueueCreate(8,sizeof(int));
