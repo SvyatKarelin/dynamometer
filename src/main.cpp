@@ -9,7 +9,7 @@
 #include <Form.h>
 
 const int HALL_GPIO = 23;
-const float MOMENT_OF_INERTIA = 1;
+const float MOMENT_OF_INERTIA = 0.0102;
 
 struct data;
 QueueHandle_t TimeQueue;
@@ -18,11 +18,11 @@ TaskHandle_t RecordT;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  
 std::vector<data> Record{} ;
 QueueHandle_t DataQueues[3];
-bool IsRecording = false;
+bool IsRecording = true;
 
 struct data
 {
-    float Time = 0,RadPS = 0,RotPM = 0, AngAcc = 0, Moment = 0, Power = 0;
+    float DeltaTime = 0, Time = 0,RadPS = 0,RotPM = 0, AngAcc = 0, Moment = 0, Power = 0;
     /*data(float Time, float RadPS, float RotPS, float Power){
       this->Time=Time;
       this->RadPS=RadPS;
@@ -30,6 +30,31 @@ struct data
       this->Power=Power;
     }*/
 };
+
+std::map<String, int> GetRepMap(data Data);
+
+int FindMax(String Selected){
+  int max = 0;
+  for(data Data : Record){
+    std::map<String, int> RepMap = GetRepMap(Data);    
+    if(RepMap[Selected] > max) {max = RepMap[Selected];}
+  }
+  return max;
+  //return map(Coord,0,max,0,Size);
+}
+
+String GetSvg(String selectedX,String selectedY){
+  String Svg = SvgTemplate;
+  int MaxX = FindMax(selectedX);
+  int MaxY = FindMax(selectedY);
+  for(data Data : Record){
+    std::map<String, int> RepMap = GetRepMap(Data);  
+    int x = map(RepMap[selectedX],0,MaxX,0,400);
+    int y = 200-map(RepMap[selectedY],0,MaxY,0,200);
+    Svg.replace("\"/><!--P-->",String('L')+ x + String(' ') + y + String("\"/><!--P-->"));
+  }
+  return Svg;
+}
 
 void ConnectWiFi_AP()
 { 
@@ -51,7 +76,8 @@ WebServer server(80);
 
 std::map<String, int> GetRepMap(data Data){
   std::map<String, int> RepMap;    
-  RepMap["DT"]=Data.Time;
+  RepMap["T"]=Data.Time;
+  RepMap["DT"]=Data.DeltaTime;
   RepMap["RPS"]=Data.RadPS;
   RepMap["RPM"]=Data.RotPM;
   RepMap["ANGACC"]=Data.AngAcc;
@@ -70,40 +96,13 @@ void FormReplace(String& Form,data Data, String selectedX,String selectedY, Stri
   }
 }
 
-int ChartRemapCoords(int Coord,String Selected,int Size){
-  int max = 0;
-  //int min = INFINITY;
-  for(data Data : Record){
-    std::map<String, int> RepMap = GetRepMap(Data);    
-    if(RepMap[Selected] > max) max = RepMap[Selected];
-    //else if(RepMap[Selected] < min) min = RepMap[Selected];
-  }
-  return map(Coord,0,max,0,Size);
-}
-
-
-void AddToChart(String& Chart,int x, int y){
-  Chart.replace("\"/><!--P-->",String('L')+ x + String(' ') + y + String("\"/><!--P-->"));
-  Chart.replace("<!--C-->", String("<circle cx=\"")+x+String("\" cy=\"")+y+String("\" r=\"2\" fill=\"blue\"/>\n<!--C-->"));
-}
-
-String BuildChart(String selectedX,String selectedY){
-  String Chart = SvgTemplate;
-  //std::vector<data> SortedRecord = Record;
-  for(data Data : Record){
-    std::map<String, int> RepMap = GetRepMap(Data);    
-    AddToChart(Chart,ChartRemapCoords(RepMap[selectedX],selectedX,400),200-ChartRemapCoords(RepMap[selectedY],selectedY,200));
-  }
-  return Chart;
-}
-
-
 void handleRoot() {
-   String response = MAIN_page;
-   data CurData;
-   String Chart = BuildChart("DT","RPM");
-   FormReplace(response,CurData,"MOMENT","ANGACC", Chart);
-   server.send(200, "text/html", response);
+  static int prevSize = 0;
+  String response = MAIN_page;
+  data CurData;
+  prevSize = Record.size();
+  FormReplace(response,CurData,"MOMENT","ANGACC", GetSvg("T","RPM"));
+  server.send(200, "text/html", response);
 }
 
 void handleNotFound() {
@@ -127,11 +126,8 @@ void SendToQueueArr(data Data){
 }
 
 void IRAM_ATTR HallISR() {
-  static int prevTmr;
-  //Serial.println("Interrupt");
-  int Delta = millis() - prevTmr;
-  prevTmr = millis();
-  xQueueSendFromISR(TimeQueue,&Delta,NULL);
+  int Time = millis();
+  xQueueSendFromISR(TimeQueue,&Time,NULL);
 }
 
 
@@ -157,18 +153,19 @@ void MonitorTask(void* params){
 }
 
 void CalcTask(void* params){
-  int dt;
+  int Time;
   data Prev;
   //если время между обнаружениями магнита слишком большое 
   while (true)
   {
-    if(xQueueReceive(TimeQueue,&dt,portMAX_DELAY) != pdTRUE)continue;
+    if(xQueueReceive(TimeQueue,&Time,portMAX_DELAY) != pdTRUE)continue;
     //if(dt > 100000) ;
     data Output;
-    Output.Time = dt/(float)1000;// перевести в секунды
-    Output.RotPM = (float)60/Output.Time;
-    Output.RadPS = 2*PI/Output.Time;
-    Output.AngAcc = (Output.RadPS - Prev.RadPS)/Output.Time;
+    Output.Time = Time;
+    Output.DeltaTime = (Output.Time - Prev.Time)/(float)1000;// перевести в секунды
+    Output.RotPM = (float)60/Output.DeltaTime;
+    Output.RadPS = 2*PI/Output.DeltaTime;
+    Output.AngAcc = (Output.RadPS - Prev.RadPS)/Output.DeltaTime;
     Output.Moment = constrain(MOMENT_OF_INERTIA * Output.AngAcc,0,INFINITY);
     Output.Power = (Output.Moment * Output.RotPM)/9550;
     Serial.println(true);
@@ -201,12 +198,12 @@ void setup() {
   ConnectWiFi_AP();
   InitServer();
 
-  for(int i = 0; i < 10; i++){
+  /*for(int i = 0; i < 10; i++){
     data D;
     D.Time = map(i,0,10,0,200);
     D.RotPM = D.Time*D.Time;
     Record.push_back(D);
-  }
+  }*/
 
   attachInterrupt(digitalPinToInterrupt(HALL_GPIO), HallISR, RISING);
   TimeQueue = xQueueCreate(8,sizeof(int));

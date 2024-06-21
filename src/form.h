@@ -59,7 +59,7 @@ const char MAIN_page[] = R"=====(
 
 const char SvgTemplate[] = R"=====(
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200" fill="none">
-  <path stroke="blue" stroke-linecap = "round" d="M 0 200 "/><!--P-->
+  <path stroke="blue" stroke-linecap = "round" d="M 0 200 L0 0"/><!--P-->
   <!--C-->
 </svg>
 )=====";
