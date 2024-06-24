@@ -16,7 +16,7 @@ QueueHandle_t TimeQueue;
 TaskHandle_t MonitorT;
 TaskHandle_t RecordT;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  
-std::vector<data> Record{} ;
+std::vector<data> Record{};
 QueueHandle_t DataQueues[2];
 String selectedX = "T", selectedY = "RPM";
 bool IsRecording = true;
@@ -32,19 +32,20 @@ struct data
     }*/
 };
 
-std::map<String, int> GetRepMap(data Data);
+std::map<String, float> GetRepMap(data Data);
 
 int FindMax(String Selected){
   int max = 0;
   for(data Data : Record){
-    std::map<String, int> RepMap = GetRepMap(Data);    
+    std::map<String, float> RepMap = GetRepMap(Data);    
     if(RepMap[Selected] > max) {max = RepMap[Selected];}
   }
   return max;
   //return map(Coord,0,max,0,Size);
 }
 
-String GetSvg(String selectedX,String selectedY){
+
+String GetSvg(){
   String Svg = SvgTemplate;
   int MaxX = FindMax(selectedX);
   int MaxY = FindMax(selectedY);
@@ -60,13 +61,20 @@ String GetSvg(String selectedX,String selectedY){
     Svg.replace("<!--L-->",_Vline+String('\n')+_Hline+String("<!--L-->"));
   }
   for(data Data : Record){
-    std::map<String, int> RepMap = GetRepMap(Data);  
+    std::map<String, float> RepMap = GetRepMap(Data);  
     int x = map(RepMap[selectedX],0,MaxX,0,400);
     int y = 200-map(RepMap[selectedY],0,MaxY,0,200);
     Svg.replace("\"/><!--P-->",String('L')+ x + String(' ') + y + String("\"/><!--P-->"));
   }
   return Svg;
 }
+
+bool compareData(data d1, data d2) 
+{ 
+    std::map<String, float> d1RepMap = GetRepMap(d1), d2RepMap = GetRepMap(d2);
+    return (d1RepMap[selectedX] < d2RepMap[selectedX]); 
+} 
+
 
 void ConnectWiFi_AP()
 { 
@@ -86,8 +94,8 @@ void ConnectWiFi_AP()
 
 WebServer server(80);
 
-std::map<String, int> GetRepMap(data Data){
-  std::map<String, int> RepMap;    
+std::map<String, float> GetRepMap(data Data){
+  std::map<String, float> RepMap;    
   RepMap["T"]=Data.Time;
   RepMap["DT"]=Data.DeltaTime;
   RepMap["RPS"]=Data.RadPS;
@@ -99,7 +107,7 @@ std::map<String, int> GetRepMap(data Data){
 }
 
 void FormReplace(String& Form, String selectedX,String selectedY, String ChartSvg){
-  std::map<String, int> RepMap = GetRepMap(data());    
+  std::map<String, float> RepMap = GetRepMap(data());    
   for(auto rep : RepMap){
     Form.replace(String("<!--X")+rep.first+String("-->"),selectedX==rep.first?"selected = \"selected\"":"");
     Form.replace(String("<!--Y")+rep.first+String("-->"),selectedY==rep.first?"selected = \"selected\"":"");
@@ -108,7 +116,7 @@ void FormReplace(String& Form, String selectedX,String selectedY, String ChartSv
 }
 
 void FormReplace(String& Form,data Data, String ChartSvg){
-  std::map<String, int> RepMap = GetRepMap(Data);    
+  std::map<String, float> RepMap = GetRepMap(Data);    
   for(auto rep : RepMap){
     Form.replace(String("[")+rep.first+String("]"),String(rep.second));
   }
@@ -125,17 +133,19 @@ void handleRoot() {
   if(IsRecording){
     response = MAIN_page;
     data CurData;
-    FormReplace(response,CurData, GetSvg("T","RPM"));
+    if(Record.size()>0)CurData = Record.back();
+    FormReplace(response,CurData, GetSvg());
   }else{
     response = SETTINGS_page;
-    FormReplace(response,selectedX,selectedY,GetSvg("T","RPM"));
+    FormReplace(response,selectedX,selectedY,GetSvg());
   }
   server.send(200, "text/html", response);
 }
 
 void handleSettings(){
-  selectedX = server.arg("Axis-X");
-  selectedY = server.arg("Axis-Y");
+  selectedX = String(server.arg("Axis-X"));
+  selectedY = String(server.arg("Axis-Y"));
+  //std::sort(Record.begin(), Record.end(), compareData); 
   RedirectToRoot();
 }
 
@@ -209,8 +219,7 @@ void CalcTask(void* params){
     Output.RadPS = 2*PI/Output.DeltaTime;
     Output.AngAcc = (Output.RadPS - Prev.RadPS)/Output.DeltaTime;
     Output.Moment = constrain(MOMENT_OF_INERTIA * Output.AngAcc,0,INFINITY);
-    Output.Power = (Output.Moment * Output.RotPM)/9550;
-    Serial.println(true);
+    Output.Power = (Output.Moment * Output.RotPM*1000)/9550;
     Prev = Output;
     SendToQueueArr(Output);
   }
@@ -224,7 +233,19 @@ void RecordTask(void* params){
     //Record.clear();
     if(!IsRecording)continue;
 
-    if(Record.size() <= 4000)Record.push_back(CurData);
+    if(Record.size() <= 4000){
+
+      if(Record.size()==0)Record.push_back(CurData);
+
+      //ищем место нового элемента по оси x
+      float CurX = GetRepMap(CurData)[selectedX];
+      if(GetRepMap(Record.back())[selectedX]<CurX)Record.push_back(CurData);//если больше последнего элемента добавляем в конец
+      else for(int i = 0; i < Record.size(); i++){
+          std::map<String, float> RepMap = GetRepMap(Record[i]);
+          if(RepMap[selectedX]>CurX){Record.insert(Record.begin()+i,CurData);break;}//иначе ищем перед каким элементом нахлдится
+      }
+      Serial.println(CurX);
+    }
     else {
       Serial.println("Err:Record list overflov");
       Record.clear();

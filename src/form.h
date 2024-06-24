@@ -13,7 +13,7 @@ const char SETTINGS_page[] = R"=====(
     <div style="text-align: center;"><button formaction="/REC" formmethod="get" name="session" type="submit" value="1">Srart</button></div>
     <div style="text-align: center;">&nbsp;</div>
     <div style="text-align: center;"><label for="Axis-X">Select axis X</label><select name="Axis-X">
-    <option <!--XDT--> value="DT">Time</option>
+    <option <!--XDT--> value="T">Time</option>
     <option <!--XRPS--> value="RPS">RadPS</option>
     <option <!--XRPM--> value="RPM">RotPM</option>
     <option <!--XANGACC--> value="ANGACC">AngAcc</option>
@@ -21,7 +21,7 @@ const char SETTINGS_page[] = R"=====(
     <option <!--XPOWER--> value="POWER">Power</option>
     </select></div>
     <div style="text-align: center;"><label for="Axis-Y">Select axis Y</label><select name="Axis-Y">
-    <option <!--YDT--> value="DT">Time</option>
+    <option <!--YDT--> value="T">Time</option>
     <option <!--YRPS--> value="RPS">RadPS</option>
     <option <!--YRPM--> value="RPM">RotPM</option>
     <option <!--YANGACC--> value="ANGACC">AngAcc</option>
@@ -80,7 +80,7 @@ const char MAIN_page[] = R"=====(
 const char SvgTemplate[] = R"=====(
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200" fill="none">
   <!--L-->
-  <path stroke="blue" stroke-linecap = "round" d="M 0 200 L0 0"/><!--P-->
+  <path stroke="blue" stroke-linecap = "round" d="M 0 200"/><!--P-->
   <!--C-->
 </svg>
 )=====";
