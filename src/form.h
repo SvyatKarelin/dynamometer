@@ -1,21 +1,16 @@
-const char MAIN_page[] = R"=====(
-<head>
-    <meta http-equiv="refresh" content="2; URL=/">
-</head>
-
+const char SETTINGS_page[] = R"=====(
 <body>
-    <form>
-    <table style="height: 14px; width: 50%; border-collapse: collapse; border-style: outset;" border="1">
-    <tbody>
-    <tr style="height: 260px;">
-    <td style="width: 50%; height: 14px;" rowspan="2">
+  <form>
+  <table style="height: 14px; width: 50%; border-collapse: collapse; border-style: outset;" border="1">
+  <tbody>
+  <tr style="height: 260px;">
+  <td style="width: 50%; height: 14px;" rowspan="2">
     <div style="text-align: center;">
 		[SVGREP]
     </div>
     </td>
     <td style="width: 50%; height: 14px;" rowspan="2">
     <div style="text-align: center;"><button formaction="/REC" formmethod="get" name="session" type="submit" value="1">Srart</button></div>
-    <div style="text-align: center;"><button formaction="/REC" formmethod="get" name="session" type="submit" value="0">Stop</button></div>
     <div style="text-align: center;">&nbsp;</div>
     <div style="text-align: center;"><label for="Axis-X">Select axis X</label><select name="Axis-X">
     <option <!--XDT--> value="DT">Time</option>
@@ -34,24 +29,49 @@ const char MAIN_page[] = R"=====(
     <option <!--YPOWER--> value="POWER">Power</option>
     </select></div>
     <div style="text-align: center;"><input formaction="/SVGSETTINGS" formmethod="get" type="submit" value="Apply" /></div>
-    <div style="text-align: center;">&nbsp;</div>
-    <div style="text-align: center;">RPM:</div>
-    <div style="text-align: center;">[RPM]</div>
-    <div style="text-align: center;">RadPS:</div>
-    <div style="text-align: center;">[RPS]</div>
-    <div style="text-align: center;">Angle Acc:</div>
-    <div style="text-align: center;">[ANGACC]</div>
-    <div style="text-align: center;">Moment:</div>
-    <div style="text-align: center;">[MOMENT]</div>
-    <div style="text-align: center;">Power:</div>
-    <div style="text-align: center;">[POWER]</div>
-    <div style="text-align: center;">Delta time:</div>
-    <div style="text-align: center;">[DT]</div>
-    </td>
-    </tr>
-    </tbody>
-    </table>
-    </form>
+  </td>
+  </tr>
+  </tbody>
+  </table>
+  </form>
+</body>
+
+</html>
+)=====";
+
+const char MAIN_page[] = R"=====(
+<head>
+    <meta http-equiv="refresh" content="2; URL=/">
+</head>
+
+<body>
+  <form>
+  <table style="height: 14px; width: 50%; border-collapse: collapse; border-style: outset;" border="1">
+  <tbody>
+  <tr style="height: 260px;">
+  <td style="width: 50%; height: 14px;" rowspan="2">
+  <div style="text-align: center;">[SVGREP]</div>
+  </td>
+  <td style="width: 50%; height: 14px;" rowspan="2">
+  <div style="text-align: center;"><button formaction="/REC" formmethod="get" name="session" type="submit" value="0">Stop</button></div>
+  <div style="text-align: center;">&nbsp;</div>
+  <div style="text-align: center;">RPM:</div>
+  <div style="text-align: center;">[RPM]</div>
+  <div style="text-align: center;">RadPS:</div>
+  <div style="text-align: center;">[RPS]</div>
+  <div style="text-align: center;">Angle Acc:</div>
+  <div style="text-align: center;">[ANGACC]</div>
+  <div style="text-align: center;">Moment:</div>
+  <div style="text-align: center;">[MOMENT]</div>
+  <div style="text-align: center;">Power:</div>
+  <div style="text-align: center;">[POWER]</div>
+  <div style="text-align: center;">Delta time:</div>
+  <div style="text-align: center;">[DT]</div>
+  </td>
+  </tr>
+  </tbody>
+  </table>
+  </form>
 </body>
 
 </html>
@@ -59,7 +79,18 @@ const char MAIN_page[] = R"=====(
 
 const char SvgTemplate[] = R"=====(
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200" fill="none">
+  <!--L-->
   <path stroke="blue" stroke-linecap = "round" d="M 0 200 L0 0"/><!--P-->
   <!--C-->
 </svg>
+)=====";
+
+const char HLine[] = R"=====(
+<path d="M0 [Y] H 400" stroke = "grey"/>
+<text x="0" y="[Y]" class="small" fill = "black" font-size = "10">[VAL]</text>
+)=====";
+
+const char VLine[] = R"=====(
+<path d="M[X] 0 V 400" stroke = "grey"/>
+<text x="[X]" y="200" class="small" fill = "black" font-size = "10">[VAL]</text>
 )=====";

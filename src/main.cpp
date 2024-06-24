@@ -17,7 +17,8 @@ TaskHandle_t MonitorT;
 TaskHandle_t RecordT;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  
 std::vector<data> Record{} ;
-QueueHandle_t DataQueues[3];
+QueueHandle_t DataQueues[2];
+String selectedX = "T", selectedY = "RPM";
 bool IsRecording = true;
 
 struct data
@@ -47,6 +48,17 @@ String GetSvg(String selectedX,String selectedY){
   String Svg = SvgTemplate;
   int MaxX = FindMax(selectedX);
   int MaxY = FindMax(selectedY);
+  float GridX = MaxX / 5;
+  float GridY = MaxY / 5;
+  for(int i = 1; i <= 5; i++){
+    String _Vline = VLine;
+    String _Hline = HLine;
+    _Vline.replace("[VAL]",String(GridX * i));
+    _Hline.replace("[VAL]",String(GridY * i));
+    _Vline.replace("[X]",String(80 * i));
+    _Hline.replace("[Y]",String(40 * i));
+    Svg.replace("<!--L-->",_Vline+String('\n')+_Hline+String("<!--L-->"));
+  }
   for(data Data : Record){
     std::map<String, int> RepMap = GetRepMap(Data);  
     int x = map(RepMap[selectedX],0,MaxX,0,400);
@@ -86,23 +98,51 @@ std::map<String, int> GetRepMap(data Data){
   return RepMap;
 }
 
-void FormReplace(String& Form,data Data, String selectedX,String selectedY, String ChartSvg){
+void FormReplace(String& Form, String selectedX,String selectedY, String ChartSvg){
+  std::map<String, int> RepMap = GetRepMap(data());    
+  for(auto rep : RepMap){
+    Form.replace(String("<!--X")+rep.first+String("-->"),selectedX==rep.first?"selected = \"selected\"":"");
+    Form.replace(String("<!--Y")+rep.first+String("-->"),selectedY==rep.first?"selected = \"selected\"":"");
+  }
+  Form.replace("[SVGREP]", ChartSvg);
+}
+
+void FormReplace(String& Form,data Data, String ChartSvg){
   std::map<String, int> RepMap = GetRepMap(Data);    
   for(auto rep : RepMap){
     Form.replace(String("[")+rep.first+String("]"),String(rep.second));
-    Form.replace(String("<!--X")+rep.first+String("-->"),selectedX==rep.first?"selected = \"selected\"":"");
-    Form.replace(String("<!--Y")+rep.first+String("-->"),selectedY==rep.first?"selected = \"selected\"":"");
-    Form.replace("[SVGREP]", ChartSvg);
   }
+  Form.replace("[SVGREP]", ChartSvg);
+}
+
+void RedirectToRoot(){
+  server.sendHeader("Location", String("/"), true);
+  server.send ( 302, "text/plain", "");
 }
 
 void handleRoot() {
-  static int prevSize = 0;
-  String response = MAIN_page;
-  data CurData;
-  prevSize = Record.size();
-  FormReplace(response,CurData,"MOMENT","ANGACC", GetSvg("T","RPM"));
+  String response;
+  if(IsRecording){
+    response = MAIN_page;
+    data CurData;
+    FormReplace(response,CurData, GetSvg("T","RPM"));
+  }else{
+    response = SETTINGS_page;
+    FormReplace(response,selectedX,selectedY,GetSvg("T","RPM"));
+  }
   server.send(200, "text/html", response);
+}
+
+void handleSettings(){
+  selectedX = server.arg("Axis-X");
+  selectedY = server.arg("Axis-Y");
+  RedirectToRoot();
+}
+
+void HandleSession(){
+  IsRecording = server.arg("session").toInt();
+  if(!IsRecording)Record.clear();
+  RedirectToRoot();
 }
 
 void handleNotFound() {
@@ -111,10 +151,12 @@ void handleNotFound() {
 
 void InitServer()
 {
-   server.on("/", handleRoot);
-   server.onNotFound(handleNotFound);
-   server.begin();
-   Serial.println("HTTP server started");
+  server.on("/", handleRoot);
+  server.on("/SVGSETTINGS", handleSettings);
+  server.on("/REC", HandleSession);
+  server.onNotFound(handleNotFound);
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void FillQueueArr(){
@@ -161,8 +203,8 @@ void CalcTask(void* params){
     if(xQueueReceive(TimeQueue,&Time,portMAX_DELAY) != pdTRUE)continue;
     //if(dt > 100000) ;
     data Output;
-    Output.Time = Time;
-    Output.DeltaTime = (Output.Time - Prev.Time)/(float)1000;// перевести в секунды
+    Output.Time = Time / (float)1000;// перевести в секунды;
+    Output.DeltaTime = Output.Time - Prev.Time;
     Output.RotPM = (float)60/Output.DeltaTime;
     Output.RadPS = 2*PI/Output.DeltaTime;
     Output.AngAcc = (Output.RadPS - Prev.RadPS)/Output.DeltaTime;
@@ -180,7 +222,7 @@ void RecordTask(void* params){
     if(xQueueReceive((QueueHandle_t)params,&CurData,portMAX_DELAY)!=pdTRUE)continue;
 
     //Record.clear();
-    if(!IsRecording){continue;}
+    if(!IsRecording)continue;
 
     if(Record.size() <= 4000)Record.push_back(CurData);
     else {
@@ -211,7 +253,6 @@ void setup() {
   xTaskCreate(CalcTask, "Calc", 4096, NULL, 1, NULL);
   xTaskCreate(MonitorTask, "Monitor", 4096, DataQueues[0], 1, &MonitorT);
   xTaskCreate(RecordTask, "Record", 4096, DataQueues[1], 1, &RecordT);
-  DataQueues[2] = xSemaphoreCreateBinary();
 }
 
 void loop() {
