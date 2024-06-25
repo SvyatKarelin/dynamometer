@@ -1,3 +1,4 @@
+#pragma once
 const char SETTINGS_page[] = R"=====(
 <body>
   <form>
