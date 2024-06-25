@@ -123,36 +123,40 @@ void FormReplace(String& Form,data Data, String ChartSvg){
   Form.replace("[SVGREP]", ChartSvg);
 }
 
-void RedirectToRoot(){
-  server.sendHeader("Location", String("/"), true);
+void RedirectTo(String URI){
+  server.sendHeader("Location", URI, true);
   server.send ( 302, "text/plain", "");
 }
 
 void handleRoot() {
-  String response;
-  if(IsRecording){
-    response = MAIN_page;
-    data CurData;
-    if(Record.size()>0)CurData = Record.back();
-    FormReplace(response,CurData, GetSvg());
-  }else{
-    response = SETTINGS_page;
-    FormReplace(response,selectedX,selectedY,GetSvg());
-  }
-  server.send(200, "text/html", response);
+  RedirectTo("/settings");
 }
 
 void handleSettings(){
-  selectedX = String(server.arg("Axis-X"));
-  selectedY = String(server.arg("Axis-Y"));
-  //std::sort(Record.begin(), Record.end(), compareData); 
-  RedirectToRoot();
+  String response = SETTINGS_page;
+  FormReplace(response,selectedX,selectedY,GetSvg());
+  server.send(200, "text/html", response);
 }
 
-void HandleSession(){
+void handleSession(){
+  String response = MAIN_page;
+  data CurData;
+  if(Record.size()>0)CurData = Record.back();
+  FormReplace(response,CurData, GetSvg());
+  server.send(200, "text/html", response);
+}
+
+void handleApplySettings(){
+  selectedX = String(server.arg("Axis-X"));
+  selectedY = String(server.arg("Axis-Y"));
+  if(Record.size()>0)std::sort(Record.begin(), Record.end(), compareData); 
+  RedirectTo("/settings");
+}
+
+void HandleRecord(){
   IsRecording = server.arg("session").toInt();
-  if(!IsRecording)Record.clear();
-  RedirectToRoot();
+  if(!IsRecording){Record.clear(); RedirectTo("/settings");}
+  else RedirectTo("/session");
 }
 
 void handleNotFound() {
@@ -162,8 +166,10 @@ void handleNotFound() {
 void InitServer()
 {
   server.on("/", handleRoot);
-  server.on("/SVGSETTINGS", handleSettings);
-  server.on("/REC", HandleSession);
+  server.on("/settings", handleSettings);
+  server.on("/session", handleSession);
+  server.on("/apply_settings", handleApplySettings);
+  server.on("/rec", HandleRecord);
   server.onNotFound(handleNotFound);
   server.begin();
   Serial.println("HTTP server started");

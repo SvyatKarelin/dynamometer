@@ -10,7 +10,7 @@ const char SETTINGS_page[] = R"=====(
     </div>
     </td>
     <td style="width: 50%; height: 14px;" rowspan="2">
-    <div style="text-align: center;"><button formaction="/REC" formmethod="get" name="session" type="submit" value="1">Srart</button></div>
+    <div style="text-align: center;"><button formaction="/rec" formmethod="get" name="session" type="submit" value="1">Srart</button></div>
     <div style="text-align: center;">&nbsp;</div>
     <div style="text-align: center;"><label for="Axis-X">Select axis X</label><select name="Axis-X">
     <option <!--XDT--> value="T">Time</option>
@@ -28,7 +28,7 @@ const char SETTINGS_page[] = R"=====(
     <option <!--YMOMENT--> value="MOMENT">Moment</option>
     <option <!--YPOWER--> value="POWER">Power</option>
     </select></div>
-    <div style="text-align: center;"><input formaction="/SVGSETTINGS" formmethod="get" type="submit" value="Apply" /></div>
+    <div style="text-align: center;"><input formaction="/apply_settings" formmethod="get" type="submit" value="Apply" /></div>
   </td>
   </tr>
   </tbody>
@@ -41,7 +41,7 @@ const char SETTINGS_page[] = R"=====(
 
 const char MAIN_page[] = R"=====(
 <head>
-    <meta http-equiv="refresh" content="2; URL=/">
+    <meta http-equiv="refresh" content="2; URL=/session">
 </head>
 
 <body>
@@ -53,7 +53,8 @@ const char MAIN_page[] = R"=====(
   <div style="text-align: center;">[SVGREP]</div>
   </td>
   <td style="width: 50%; height: 14px;" rowspan="2">
-  <div style="text-align: center;"><button formaction="/REC" formmethod="get" name="session" type="submit" value="0">Stop</button></div>
+  <div style="text-align: center;"><button formaction="/rec" formmethod="get" name="session" type="submit" value="0">Stop</button></div>
+  <div style="text-align: center;"><button formaction="/settings" formmethod="get" type="submit">Change settings</button></div>
   <div style="text-align: center;">&nbsp;</div>
   <div style="text-align: center;">RPM:</div>
   <div style="text-align: center;">[RPM]</div>
