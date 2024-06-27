@@ -11,13 +11,16 @@
 const int HALL_GPIO = 23;
 const float MOMENT_OF_INERTIA = 0.0102;
 
+const int SVG_WIDTH = 400;
+const int SVG_HEIGHT = 200;
+
 QueueHandle_t TimeQueue;
 TaskHandle_t MonitorT;
 TaskHandle_t RecordT;
 LiquidCrystal_I2C lcd(0x27, 16, 2);  
 std::vector<data> Record{};
 QueueHandle_t DataQueues[2];
-String selectedX = "T", selectedY = "RPM";
+String selectedX = "TIME", selectedY = "RPM";
 bool IsRecording = false;
 
 void IRAM_ATTR HallISR() {

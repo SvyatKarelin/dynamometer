@@ -35,7 +35,7 @@ void handleSession(){
   String response = MAIN_page;
   data CurData;
   if(Record.size()>0)CurData = Record.back();
-  FormReplace(response,CurData, GetSvg());
+  FormReplace(response,CurData,GetSvg());
   server.send(200, "text/html", response);
 }
 

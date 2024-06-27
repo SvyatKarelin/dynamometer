@@ -14,7 +14,7 @@ const char SETTINGS_page[] = R"=====(
     <div style="text-align: center;"><button formaction="/rec" formmethod="get" name="session" type="submit" value="1">Srart</button></div>
     <div style="text-align: center;">&nbsp;</div>
     <div style="text-align: center;"><label for="Axis-X">Select axis X</label><select name="Axis-X">
-    <option <!--XDT--> value="T">Time</option>
+    <option <!--XTIME--> value="TIME">Time</option>
     <option <!--XRPS--> value="RPS">RadPS</option>
     <option <!--XRPM--> value="RPM">RotPM</option>
     <option <!--XANGACC--> value="ANGACC">AngAcc</option>
@@ -22,13 +22,14 @@ const char SETTINGS_page[] = R"=====(
     <option <!--XPOWER--> value="POWER">Power</option>
     </select></div>
     <div style="text-align: center;"><label for="Axis-Y">Select axis Y</label><select name="Axis-Y">
-    <option <!--YDT--> value="T">Time</option>
+    <option <!--YTIME--> value="TIME">Time</option>
     <option <!--YRPS--> value="RPS">RadPS</option>
     <option <!--YRPM--> value="RPM">RotPM</option>
     <option <!--YANGACC--> value="ANGACC">AngAcc</option>
     <option <!--YMOMENT--> value="MOMENT">Moment</option>
     <option <!--YPOWER--> value="POWER">Power</option>
     </select></div>
+    <div style="text-align: center;">&nbsp;</div>
     <div style="text-align: center;"><input formaction="/apply_settings" formmethod="get" type="submit" value="Apply" /></div>
   </td>
   </tr>
@@ -68,7 +69,7 @@ const char MAIN_page[] = R"=====(
   <div style="text-align: center;">Power:</div>
   <div style="text-align: center;">[POWER]</div>
   <div style="text-align: center;">Delta time:</div>
-  <div style="text-align: center;">[DT]</div>
+  <div style="text-align: center;">[DELTATIME]</div>
   </td>
   </tr>
   </tbody>
@@ -80,10 +81,14 @@ const char MAIN_page[] = R"=====(
 )=====";
 
 const char SvgTemplate[] = R"=====(
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200" fill="none">
-  <!--L-->
-  <path stroke="blue" stroke-linecap = "round" d="M 0 200"/><!--P-->
-  <!--C-->
+<svg xmlns="http://www.w3.org/2000/svg" width="415" height="215" viewBox="0 0 415 215">
+    <text x="0" y="8" class="small" transform="rotate(270)" fill = "black" text-anchor="end" font-size = "10">[AXY]</text>
+    <text x="415" y="213" class="small" fill = "black" text-anchor="end" font-size = "10">[AXX]</text>
+    <svg x="15" y="0" width="400" height="200" viewBox="0 0 400 200" fill="none">
+        <!--L-->
+        <path stroke="blue" stroke-linecap = "round" d="M 0 200"/><!--P-->
+        <!--C-->
+    </svg>
 </svg>
 )=====";
 

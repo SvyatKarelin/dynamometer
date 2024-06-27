@@ -77,7 +77,6 @@ void RecordTask(void* params){
           std::map<String, float> RepMap = GetRepMap(Record[i]);
           if(RepMap[selectedX]>CurX){Record.insert(Record.begin()+i,CurData);break;}//иначе ищем перед каким элементом нахлдится
       }
-      Serial.println(CurX);
     }
     else {
       Serial.println("Err:Record list overflov");
