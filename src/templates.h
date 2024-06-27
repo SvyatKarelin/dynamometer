@@ -56,6 +56,7 @@ const char MAIN_page[] = R"=====(
   </td>
   <td style="width: 50%; height: 14px;" rowspan="2">
   <div style="text-align: center;"><button formaction="/rec" formmethod="get" name="session" type="submit" value="0">Stop</button></div>
+  <div style="text-align: center;">&nbsp;</div>
   <div style="text-align: center;"><button formaction="/settings" formmethod="get" type="submit">Change settings</button></div>
   <div style="text-align: center;">&nbsp;</div>
   <div style="text-align: center;">RPM:</div>
